@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
-# written by andrewt@cse.unsw.edu.au September 2013
-# as a starting point for COMP2041/9041 assignment 2
+# written by Charbel Antouny 2014
 # http://cgi.cse.unsw.edu.au/~cs2041/assignments/LOVE2041/
 
 use CGI qw/:all/;
@@ -15,7 +14,7 @@ print page_header();
 
 # some globals used through the script
 $debug = 1;
-$students_dir = "./students";
+$students_dir = "./students30";
 
 print browse_screen();
 print page_trailer();
@@ -28,12 +27,23 @@ sub browse_screen {
 	param('n', $n + 1);
 	my $student_to_show  = $students[$n];
 	my $profile_filename = "$student_to_show/profile.txt";
+	my $profilePic = $student_to_show;
+	$profilePic =~ s/\.\///;
+	if (-e "$profilePic/profile.jpg") {
+		$profilePic = "$profilePic/profile.jpg";
+	} else {
+		$profilePic = "";
+	}
 	open my $p, "$profile_filename" or die "can not open $profile_filename: $!";
-	$profile = join '', <$p>;
+	my $profile = join '', <$p>;
 	close $p;
+	$profile =~ s/\t*[0-9]{4}\s*[A-Za-z][0-9]\s*\w*?\n//g;	#MAKE THIS A SUBROUTINE
+	$profile =~ s/courses:\n//;
 	
 	return p,
 		start_form, "\n",
+		# "PROFILE PIC PATH = $profilePic\n",
+		"<img src=\"$profilePic\" />", "\n",
 		pre($profile),"\n",
 		hidden('n', $n + 1),"\n",
 		submit('Next student'),"\n",
