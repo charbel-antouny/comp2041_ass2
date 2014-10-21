@@ -1,0 +1,10 @@
+COMP2041 Assignment 2
+=====================
+Version History
+=====================
+
+
+Date: 14/10/2014
+Start: 2pm      End: 5pm
+Activity: Coding
+Comments: Setup starting point and started on subset 0
