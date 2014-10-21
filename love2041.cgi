@@ -13,7 +13,7 @@ warningsToBrowser(1);
 print page_header();
 
 # some globals used through the script
-$debug = 1;
+$debug = 1;		#THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
 $students_dir = "./students30";
 
 print browse_screen();
@@ -42,7 +42,6 @@ sub browse_screen {
 	
 	return p,
 		start_form, "\n",
-		# "PROFILE PIC PATH = $profilePic\n",
 		"<img src=\"$profilePic\" />", "\n",
 		pre($profile),"\n",
 		hidden('n', $n + 1),"\n",
@@ -52,12 +51,12 @@ sub browse_screen {
 }
 
 #
-# HTML placed at bottom of every screen
+# HTML placed at top of every screen
 #
 sub page_header {
 	return header,
-   		start_html("-title"=>"LOVE2041", -bgcolor=>"#FEDCBA"),
- 		center(h2(i("LOVE2041")));
+   		start_html("-title"=>"UNSWLUV", -bgcolor=>"#FEDCBA"),
+ 		center(h1("UNSWLUV"));
 }
 
 #
