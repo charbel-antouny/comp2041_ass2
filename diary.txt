@@ -8,11 +8,18 @@ Date:       14/10/2014
 Start:      2pm
 End:        5pm
 Activity:   Coding
-Comments:   Setup starting point and started on subset 0
+Comments:   Setup starting point and started on subset 0.
 
 
 Date:       21/10/2014
 Start:      3:30pm
 End:        5pm
 Activity:   Coding
-Comments:   Added diary file and started formatting profiles
+Comments:   Added diary file and started formatting profiles.
+
+
+Date:       22/10/2014
+Start:      2pm
+End:        5pm
+Activity:   Coding
+Comments:   Incorporated bootstrap into project and improved layout.
