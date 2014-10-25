@@ -1,3 +1,21 @@
 td {
     white-space: pre;
 }
+
+.pgTitle {
+    color: blue;
+    text-align: center;
+    font-size: 60px;
+}
+
+.username {
+    text-align: center;
+    font-weight: bold;
+    font-size: 24px
+}
+
+.table-centred {
+    margin: auto;
+    float: none;
+    width: 40%;
+}

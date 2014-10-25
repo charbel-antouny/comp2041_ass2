@@ -23,3 +23,10 @@ Start:      2pm
 End:        5pm
 Activity:   Coding
 Comments:   Incorporated bootstrap into project and improved layout.
+
+
+Date:       25/10/2014
+Start:      6:30pm
+End:        10:30pm
+Activity:   Coding
+Comments:   Implemented parts of subset 1, added a home page, fixed some bugs, improved the layout.

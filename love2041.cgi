@@ -9,21 +9,53 @@ use Data::Dumper;
 use List::Util qw/min max/;
 warningsToBrowser(1);
 
-%students = ();
-
-# print start of HTML ASAP to assist debugging if there is an error in the script
 print page_header();
-# some globals used through the script
-$debug = 1;		#THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
-$students_dir = "./students30";
 
-print browse_screen();
+# some globals used through the script
+$debug = 1;								# THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
+$students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
+%students = ();
+@students = glob("$students_dir/*");
+
+home_page();
+#print browse_screen();
 print page_trailer();
-exit 0;	
+
+sub home_page {
+	my $x = param('x') || 0;
+	my $max;
+	($x + 9 > $#students) ? ($max = $#students) : ($max = $x + 9);
+	param('x', $x+10);
+	print start_form,"\n",
+	"<div class='jumbotron'>\n",
+  	"<div class='page-header'>\n",
+  	"<h2>Welcome to UNSWLUV! <small>Dating for UNSW students</small></h2>\n",
+	"</div>\n",
+  	"<p>Lonely? Looking for love?<br>You've come to the right place!<br><br>",
+  	"Choose a profile to get started <span class='glyphicon glyphicon-heart'></span></p>\n",
+  	"</div><br>\n";
+	if ($x <= $max) {
+		print "<div><ul>\n";
+		for ($x..$max) {
+			my $stud = $students[$_];
+			$stud =~ s/\.\/students[0-9]*\///;
+			print "<li>$stud</li>\n";	#maybe just make small buttons?
+		}
+		print "</ul></div><br><br>\n";
+		print hidden('x', $x+10);
+	} else {
+		print "<div><p style='padding-left: 15px; padding-bottom: 20px'>You've reached the end. ",
+		"Click 'More Students' to start from the beginning!</p></div>\n",
+		hidden('x', 0),"\n";
+	}
+	print "<div class='col-md-2 col-lg-2'>\n",
+	"<input class='btn btn-primary' type='submit' name='More Students' value='More Students'></div>\n",
+	"<br><br>\n",
+	end_form;
+}
 
 sub browse_screen {
 	my $n = param('n') || 0;
-	my @students = glob("$students_dir/*");
 	$n = min(max($n, 0), $#students);
 	param('n', $n + 1);
 	my $student_to_show  = $students[$n];
@@ -48,10 +80,11 @@ sub browse_screen {
 	close F;
 
 	print start_form, "\n",
-		"<img src=\"$profilePic\" class=\"img-circle\"/>", "\n",
-		"<table class=\"table table-striped\">\n";
+		"<div style='text-align:center'><img src=\"$profilePic\" class=\"img-circle\"/></div>\n",
+		"<div><p class='username'>$students{$student_to_show}{username}[0]</p></div><br>\n",
+		"<div class='table-centred'><table class=\"table table-striped\">\n";
 		foreach my $key (sort keys %{$students{$student_to_show}}) {
-			if ($key eq "courses" or $key eq "name" or $key eq "password" or $key eq "email") {
+			if ($key eq "courses" or $key eq "name" or $key eq "password" or $key eq "email" or $key eq "username") {
 				next;
 			}
 			print "<tr>\n";
@@ -63,17 +96,16 @@ sub browse_screen {
 			print "</td>\n";
 			print "</tr>\n";
 		}
-		print "</table>\n";
-	
+		print "</table></div>\n";
 	return
 		hidden('n', $n + 1),"\n",
-		submit('Next student'),"\n",
+		"<br>\n",
+		"<div style='text-align: center'><input class='btn btn-primary' type='submit' name='Next Student' value='Next Student'></div>\n",
+		"<br><br>\n",
 		end_form, "\n";
 }
 
-#
 # HTML placed at top of every screen
-#
 sub page_header {
 	return 
 		header,
@@ -85,21 +117,19 @@ sub page_header {
 		"<title>UNSWLUV</title>\n",
 		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\"/>\n",
 		"<link rel='stylesheet' href='formatting.css' type='text/css'/>\n",
-		# Bootstrap start
+		# Bootstrap start --> getbootstrap.com
 		"<script src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js'></script>\n",
 		"<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css'>\n",
 		"<link href='//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css' rel='stylesheet'>\n",
 		# Bootstrap end
 		"</head>\n",
 		"<body>\n",
-		center(h1("UNSWLUV"));
+		"<div><h1 class='pgTitle'>UNSWLUV</h1></div>\n";
 }
 
-#
 # HTML placed at bottom of every screen
 # It includes all supplied parameter values as a HTML comment
 # if global variable $debug is set
-#
 sub page_trailer {
 	my $html = "";
 	$html .= join("", map("<!-- $_=".param($_)." -->\n", param())) if $debug;
