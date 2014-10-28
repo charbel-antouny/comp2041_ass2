@@ -30,3 +30,10 @@ Start:      6:30pm
 End:        10:30pm
 Activity:   Coding
 Comments:   Implemented parts of subset 1, added a home page, fixed some bugs, improved the layout.
+
+
+Date:       28/10/2014
+Start:      1:30pm
+End:        5:30pm
+Activity:   Coding
+Comments:   Completed subset 1 (subject to bug checking) and linked profiles to home page.

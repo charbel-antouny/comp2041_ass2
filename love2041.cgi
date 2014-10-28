@@ -17,15 +17,61 @@ $students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
 %students = ();
 @students = glob("$students_dir/*");
 
-home_page();
-#print browse_screen();
+# store all student info in a hash
+# my $n = param('n') || 0;
+# $n = min(max($n, 0), $#students);
+# param('n', $n + 1);
+
+for (0..$#students) {
+	my $student_to_show  = $students[$_];
+	my $profile_filename = "$student_to_show/profile.txt";
+	open F, "$profile_filename" or die "can not open $profile_filename: $!";
+	my $currCat;
+	for my $line (<F>) {
+		if ($line =~ m/^(\w*):/) {
+			$currCat = $1;
+			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
+		} else {
+			push @{$students{$student_to_show}{$currCat}}, $line;
+		}
+	}
+	close F;
+}
+
+if (!defined param('Home')) {
+	# check if a user profile has been selected
+	my $stud = param('stud_username');
+	if ($stud) {
+		$stud = "$students_dir/${stud}";
+		browse_screen($stud);
+	} else {
+		home_page();
+	}
+} else {
+	home_page();
+}
+
 print page_trailer();
+
+# sub login_page {
+# 	<div class="container" style='padding-top: 40px; padding-bottom: 40px'>
+#       <form class="form-signin" role="form">
+#         <h2 class="form-signin-heading">Please sign in</h2>
+#         <input type="email" class="form-control" placeholder="Email address" required autofocus>
+#         <input type="password" class="form-control" placeholder="Password" required>
+#         <label class="checkbox">
+#           <input type="checkbox" value="remember-me"> Remember me
+#         </label>
+#         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+#       </form>
+
+#     </div> <!-- /container -->
+# }
 
 sub home_page {
 	my $x = param('x') || 0;
 	my $max;
 	($x + 9 > $#students) ? ($max = $#students) : ($max = $x + 9);
-	param('x', $x+10);
 	print start_form,"\n",
 	"<div class='jumbotron'>\n",
   	"<div class='page-header'>\n",
@@ -39,70 +85,55 @@ sub home_page {
 		for ($x..$max) {
 			my $stud = $students[$_];
 			$stud =~ s/\.\/students[0-9]*\///;
-			print "<li>$stud</li>\n";	#maybe just make small buttons?
+			print "<li><input class='btn btn-link' type='submit' name='stud_username' value='${stud}'></li>\n";
 		}
 		print "</ul></div><br><br>\n";
+		param('x', $x+10);
 		print hidden('x', $x+10);
 	} else {
+		param('x', 0);
 		print "<div><p style='padding-left: 15px; padding-bottom: 20px'>You've reached the end. ",
 		"Click 'More Students' to start from the beginning!</p></div>\n",
 		hidden('x', 0),"\n";
 	}
 	print "<div class='col-md-2 col-lg-2'>\n",
-	"<input class='btn btn-primary' type='submit' name='More Students' value='More Students'></div>\n",
-	"<br><br>\n",
+	"<input class='btn btn-primary' type='submit' name='moreStudents' value='More Students'></div>\n",
+	"<br><br><br>\n",
 	end_form;
 }
 
 sub browse_screen {
-	my $n = param('n') || 0;
-	$n = min(max($n, 0), $#students);
-	param('n', $n + 1);
-	my $student_to_show  = $students[$n];
-	my $profile_filename = "$student_to_show/profile.txt";
-	my $profilePic = $student_to_show;
-	$profilePic =~ s/\.\///;
-	if (-e "$profilePic/profile.jpg") {
-		$profilePic = "$profilePic/profile.jpg";
+	my $currProfile = $_[0];
+	if (-e "$currProfile/profile.jpg") {
+		$currProfile = "$currProfile/profile.jpg";
 	} else {
-		$profilePic = "";
+		$currProfile = "";
 	}
-	open F, "$profile_filename" or die "can not open $profile_filename: $!";
-	my $currCat;
-	for my $line (<F>) {
-		if ($line =~ m/^(\w*):/) {
-			$currCat = $1;
-			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
-		} else {
-			push @{$students{$student_to_show}{$currCat}}, $line;
-		}
-	}
-	close F;
-
 	print start_form, "\n",
-		"<div style='text-align:center'><img src=\"$profilePic\" class=\"img-circle\"/></div>\n",
-		"<div><p class='username'>$students{$student_to_show}{username}[0]</p></div><br>\n",
+		"<div style='text-align:center'><img src=\"$currProfile\" class=\"img-circle\"/></div>\n";
+		$currProfile = $_[0];
+		print "<div><p class='username'>$students{$currProfile}{username}[0]</p></div><br>\n",
 		"<div class='table-centred'><table class=\"table table-striped\">\n";
-		foreach my $key (sort keys %{$students{$student_to_show}}) {
-			if ($key eq "courses" or $key eq "name" or $key eq "password" or $key eq "email" or $key eq "username") {
-				next;
-			}
-			print "<tr>\n";
-			print "<td style=\"font-weight:bold\">$key</td>\n";
-			print "<td>";
-			foreach my $item (sort @{$students{$student_to_show}{$key}}) {
-				print "$item";
-			}
-			print "</td>\n";
-			print "</tr>\n";
+	foreach my $key (sort keys %{$students{$currProfile}}) {
+		if ($key eq "courses" or $key eq "name" or $key eq "password" or $key eq "email" or $key eq "username") {
+			next;
 		}
-		print "</table></div>\n";
-	return
-		hidden('n', $n + 1),"\n",
+		print "<tr>\n";
+		print "<td style=\"font-weight:bold\">$key</td>\n";
+		print "<td>";
+		foreach my $item (sort @{$students{$currProfile}{$key}}) {
+			print "$item";
+		}
+		print "</td>\n";
+		print "</tr>\n";
+	}
+	print "</table></div>\n",
+		# hidden('n', $n + 1),"\n",
 		"<br>\n",
-		"<div style='text-align: center'><input class='btn btn-primary' type='submit' name='Next Student' value='Next Student'></div>\n",
+		"<div style='text-align: center'><input class='btn btn-primary' type='submit' name='home' value='Home'></div>\n",
 		"<br><br>\n",
 		end_form, "\n";
+		param('stud_username', "");
 }
 
 # HTML placed at top of every screen
