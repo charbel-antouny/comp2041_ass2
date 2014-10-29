@@ -4,24 +4,22 @@
 # http://cgi.cse.unsw.edu.au/~cs2041/assignments/LOVE2041/
 
 use CGI qw/:all/;
+use CGI::Session;
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
-use Data::Dumper;  
-use List::Util qw/min max/;
+use Data::Dumper;
 warningsToBrowser(1);
 
+$cgi = CGI->new;
+$cookie = undef;
 print page_header();
 
 # some globals used through the script
 $debug = 1;								# THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
 $students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
 %students = ();
-@students = glob("$students_dir/*");
+@students = glob("$students_dir/*");	# format of elements is "./students[30]/USERNAME"
 
 # store all student info in a hash
-# my $n = param('n') || 0;
-# $n = min(max($n, 0), $#students);
-# param('n', $n + 1);
-
 for (0..$#students) {
 	my $student_to_show  = $students[$_];
 	my $profile_filename = "$student_to_show/profile.txt";
@@ -38,48 +36,68 @@ for (0..$#students) {
 	close F;
 }
 
-if (!defined param('Home')) {
-	# check if a user profile has been selected
-	my $stud = param('stud_username');
-	if ($stud) {
-		$stud = "$students_dir/${stud}";
-		browse_screen($stud);
+if (defined param('loginbtn')) {
+	my $user = param('loginUser');
+	my $pass = param('loginPass');
+	$pass =~ s/[^a-zA-Z0-9]*//g;	#check this!!!!!!!
+	$user = "$students_dir/$user";
+	if (defined $students{$user} and $pass eq $students{$user}{password}) {
+		$session = new CGI::Session(undef, $cgi, {Directory=>"/tmp"});
+		$session->expire('+15m');
+		$cookie = $cgi->cookie( "CGISESSID", $session->id ) || undef;
+	} else {
+		Delete('loginUser', 'loginPass', 'loginbtn');
+		print "<div class=\"alert alert-danger\" role=\"alert\">",
+			"Oops, looks like your username or password is wrong. Please try again.</div>\n";
+	}
+}
+
+if (!defined $cookie) {
+	login_page();
+} else {
+	if (!defined param('Home')) {
+		# check if a user profile has been selected
+		my $stud = param('stud_username');
+		if ($stud) {
+			$stud = "$students_dir/${stud}";
+			browse_screen($stud);
+		} else {
+			home_page();
+		}
 	} else {
 		home_page();
 	}
-} else {
-	home_page();
 }
 
 print page_trailer();
 
-# sub login_page {
-# 	<div class="container" style='padding-top: 40px; padding-bottom: 40px'>
-#       <form class="form-signin" role="form">
-#         <h2 class="form-signin-heading">Please sign in</h2>
-#         <input type="email" class="form-control" placeholder="Email address" required autofocus>
-#         <input type="password" class="form-control" placeholder="Password" required>
-#         <label class="checkbox">
-#           <input type="checkbox" value="remember-me"> Remember me
-#         </label>
-#         <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-#       </form>
-
-#     </div> <!-- /container -->
-# }
+sub login_page {
+	# START BOOTSTRAP SIGNIN CSS -> getbootstrap.com/examples/signin
+	print "<div class=\"container\" style='padding-top: 40px; padding-bottom: 40px'>\n",
+    	"<form class=\"form-signin\" role=\"form\" method='POST'>\n",
+        "<h2 class=\"form-signin-heading\">Please login</h2>\n",
+        "<input type=\"text\" class=\"form-control\" placeholder=\"Username\" name='loginUser' required autofocus>\n",
+        "<input type=\"password\" class=\"form-control\" placeholder=\"Password (letters & numbers only)\" name='loginPass' required>\n",
+        "<label class=\"checkbox\" style='padding-left: 20px'>\n",
+        "<input type=\"checkbox\" value=\"remember-me\"> Remember me</label>\n",
+        "<button class=\"btn btn-lg btn-primary btn-block\" type=\"submit\" name='loginbtn'>Login</button>\n",
+      	"</form></div>\n";
+    # END BOOTSTRAP SIGNIN CSS
+}
 
 sub home_page {
 	my $x = param('x') || 0;
 	my $max;
 	($x + 9 > $#students) ? ($max = $#students) : ($max = $x + 9);
 	print start_form,"\n",
-	"<div class='jumbotron'>\n",
+	"<div style='background:#ddd !important' class='jumbotron'>\n",
   	"<div class='page-header'>\n",
   	"<h2>Welcome to UNSWLUV! <small>Dating for UNSW students</small></h2>\n",
 	"</div>\n",
   	"<p>Lonely? Looking for love?<br>You've come to the right place!<br><br>",
-  	"Choose a profile to get started <span class='glyphicon glyphicon-heart'></span></p>\n",
-  	"</div><br>\n";
+  	"Choose a profile to get started <span class='glyphicon glyphicon-heart'></span><br><br>",
+  	"<span style='font-size: 14px'>Note: Please make sure cookies are enabled!</span></p>\n",
+  	"</div>\n";
 	if ($x <= $max) {
 		print "<div><ul>\n";
 		for ($x..$max) {
@@ -87,7 +105,7 @@ sub home_page {
 			$stud =~ s/\.\/students[0-9]*\///;
 			print "<li><input class='btn btn-link' type='submit' name='stud_username' value='${stud}'></li>\n";
 		}
-		print "</ul></div><br><br>\n";
+		print "</ul></div><br>\n";
 		param('x', $x+10);
 		print hidden('x', $x+10);
 	} else {
@@ -139,7 +157,7 @@ sub browse_screen {
 # HTML placed at top of every screen
 sub page_header {
 	return 
-		header,
+		$cgi->header(-cookie=>$cookie),
 		"<!DOCTYPE html\n",
 		"PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n",
 	 	"\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n",
@@ -149,13 +167,13 @@ sub page_header {
 		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\"/>\n",
 		"<link rel='stylesheet' href='formatting.css' type='text/css'/>\n",
 		# Bootstrap start --> getbootstrap.com
-		"<script src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js'></script>\n",
+		#"<script src='//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js'></script>\n",
 		"<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css'>\n",
 		"<link href='//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css' rel='stylesheet'>\n",
 		# Bootstrap end
 		"</head>\n",
-		"<body>\n",
-		"<div><h1 class='pgTitle'>UNSWLUV</h1></div>\n";
+		"<body style='background-color: #ededed'>\n",
+		"<div><h1 id='pgTitle'>UNSWLUV</h1></div>\n";
 }
 
 # HTML placed at bottom of every screen

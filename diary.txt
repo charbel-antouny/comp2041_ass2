@@ -37,3 +37,10 @@ Start:      1:30pm
 End:        5:30pm
 Activity:   Coding
 Comments:   Completed subset 1 (subject to bug checking) and linked profiles to home page.
+
+
+Date:       29/10/2014
+Start:      3:30pm
+End:        5:00pm
+Activity:   Coding, debugging
+Comments:   Fixed up some bugs on the login page and improved visual layout, and implemented CGI session functionality.

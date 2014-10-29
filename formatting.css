@@ -2,10 +2,12 @@ td {
     white-space: pre;
 }
 
-.pgTitle {
+#pgTitle {
     color: blue;
     text-align: center;
     font-size: 60px;
+    font-family: Verdana, sans-serif;
+    text-shadow: 4px 4px 4px #aaa;
 }
 
 .username {
@@ -20,44 +22,39 @@ td {
     width: 40%;
 }
 
-/*body {
-    background: rgb(200, 54, 54);  IE8 and below 
-    background: rgba(200, 54, 54);
-}   GET THIS WORKING SOMEHOW */
-
 /* START BOOTSTRAP SIGNIN CSS -> getbootstrap.com/examples/signin */
 .form-signin {
-  max-width: 330px;
-  padding: 15px;
-  margin: 0 auto;
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
 }
 .form-signin .form-signin-heading,
 .form-signin .checkbox {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
 }
 .form-signin .checkbox {
-  font-weight: normal;
+    font-weight: normal;
 }
 .form-signin .form-control {
-  position: relative;
-  height: auto;
-  -webkit-box-sizing: border-box;
-     -moz-box-sizing: border-box;
-          box-sizing: border-box;
-  padding: 10px;
-  font-size: 16px;
+    position: relative;
+    height: auto;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px;
 }
 .form-signin .form-control:focus {
-  z-index: 2;
+    z-index: 2;
 }
 .form-signin input[type="email"] {
-  margin-bottom: -1px;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
 }
 .form-signin input[type="password"] {
-  margin-bottom: 10px;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 /* END BOOTSTRAP SIGNIN CSS */
