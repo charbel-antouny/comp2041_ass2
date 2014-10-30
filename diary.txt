@@ -41,6 +41,13 @@ Comments:   Completed subset 1 (subject to bug checking) and linked profiles to 
 
 Date:       29/10/2014
 Start:      3:30pm
-End:        5:00pm
+End:        5pm
 Activity:   Coding, debugging
 Comments:   Fixed up some bugs on the login page and improved visual layout, and implemented CGI session functionality.
+
+
+Date:       30/10/2014
+Start:      7pm
+End:        11pm
+Activity:   Coding, debugging
+Comments:   Fixed errors in the CGI session module and began on subset 2.

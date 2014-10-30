@@ -5,18 +5,16 @@
 
 use CGI qw/:all/;
 use CGI::Session;
+use CGI::Cookie;
 use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use Data::Dumper;
 warningsToBrowser(1);
-
-$cgi = CGI->new;
-$cookie = undef;
-print page_header();
 
 # some globals used through the script
 $debug = 1;								# THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
 $students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
 %students = ();
+$loginFlag = 0;
 @students = glob("$students_dir/*");	# format of elements is "./students[30]/USERNAME"
 
 # store all student info in a hash
@@ -26,6 +24,8 @@ for (0..$#students) {
 	open F, "$profile_filename" or die "can not open $profile_filename: $!";
 	my $currCat;
 	for my $line (<F>) {
+		chomp $line;
+		$line =~ s/^\s*//g;
 		if ($line =~ m/^(\w*):/) {
 			$currCat = $1;
 			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
@@ -36,25 +36,37 @@ for (0..$#students) {
 	close F;
 }
 
+$cgi = CGI->new;
+$sid = $cgi->cookie("CGISESSID") || undef;
 if (defined param('loginbtn')) {
 	my $user = param('loginUser');
 	my $pass = param('loginPass');
-	$pass =~ s/[^a-zA-Z0-9]*//g;	#check this!!!!!!!
+	$pass =~ s/[^a-zA-Z0-9]*//g;
 	$user = "$students_dir/$user";
-	if (defined $students{$user} and $pass eq $students{$user}{password}) {
-		$session = new CGI::Session(undef, $cgi, {Directory=>"/tmp"});
-		$session->expire('+15m');
-		$cookie = $cgi->cookie( "CGISESSID", $session->id ) || undef;
+	if (defined $students{$user} and $pass eq $students{$user}{password}[0]) {
+    	$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'});
+    	$cookie = $cgi->cookie(CGISESSID => $session->id);
+		$session->expire('+30m');
+		$sid = $session->id();
+		$loginFlag = 1;
 	} else {
-		Delete('loginUser', 'loginPass', 'loginbtn');
+		print header();
+		print page_header();
+		$loginFlag = 1;
 		print "<div class=\"alert alert-danger\" role=\"alert\">",
 			"Oops, looks like your username or password is wrong. Please try again.</div>\n";
 	}
 }
 
-if (!defined $cookie) {
+if (!defined $sid) {
+	print header() if (!$loginFlag);
+	print page_header() if (!$loginFlag);
 	login_page();
 } else {
+	$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'}) if (!$loginFlag);
+	$session->expire('+30m') if (!loginFlag);
+	print $session->header();
+	print page_header();
 	if (!defined param('Home')) {
 		# check if a user profile has been selected
 		my $stud = param('stud_username');
@@ -156,8 +168,8 @@ sub browse_screen {
 
 # HTML placed at top of every screen
 sub page_header {
-	return 
-		$cgi->header(-cookie=>$cookie),
+	#(defined $session) ? (print $session->header()) : (print header());
+	return
 		"<!DOCTYPE html\n",
 		"PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n",
 	 	"\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n",
