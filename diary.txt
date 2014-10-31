@@ -51,3 +51,10 @@ Start:      7pm
 End:        11pm
 Activity:   Coding, debugging
 Comments:   Fixed errors in the CGI session module and began on subset 2.
+
+
+Date:       31/10/2014
+Start:      10am
+End:        1pm
+Activity:   Coding, debugging
+Comments:   Re-implemented logging in and out for subset 1.

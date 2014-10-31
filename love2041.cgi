@@ -40,6 +40,7 @@ $cgi = CGI->new;
 $sid = $cgi->cookie("CGISESSID") || undef;
 if (defined param('loginbtn')) {
 	my $user = param('loginUser');
+	$username = $user;
 	my $pass = param('loginPass');
 	$pass =~ s/[^a-zA-Z0-9]*//g;
 	$user = "$students_dir/$user";
@@ -48,36 +49,46 @@ if (defined param('loginbtn')) {
     	$cookie = $cgi->cookie(CGISESSID => $session->id);
 		$session->expire('+30m');
 		$sid = $session->id();
+		$session->param('username', $username);
 		$loginFlag = 1;
 	} else {
 		print header();
-		print page_header();
+		page_header();
 		$loginFlag = 1;
 		print "<div class=\"alert alert-danger\" role=\"alert\">",
 			"Oops, looks like your username or password is wrong. Please try again.</div>\n";
 	}
 }
 
-if (!defined $sid) {
-	print header() if (!$loginFlag);
-	print page_header() if (!$loginFlag);
+if (defined param('logoutbtn')) {
+	my $cookie = $cgi->cookie(CGISESSID => undef);
+	undef $sid;
+	print header(-cookie=>$cookie);
+	page_header();
 	login_page();
 } else {
-	$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'}) if (!$loginFlag);
-	$session->expire('+30m') if (!loginFlag);
-	print $session->header();
-	print page_header();
-	if (!defined param('Home')) {
-		# check if a user profile has been selected
-		my $stud = param('stud_username');
-		if ($stud) {
-			$stud = "$students_dir/${stud}";
-			browse_screen($stud);
+	if (!defined $sid) {
+		print header() if (!$loginFlag);
+		page_header() if (!$loginFlag);
+		login_page();
+	} else {
+		$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'}) if (!$loginFlag);
+		$session->expire('+30m') if (!loginFlag);
+		$username = $session->param('username') if (!defined $username);
+		print $session->header();
+		page_header();
+		if (!defined param('Home')) {
+			# check if a user profile has been selected
+			my $stud = param('stud_username');
+			if ($stud) {
+				$stud = "$students_dir/${stud}";
+				browse_screen($stud);
+			} else {
+				home_page();
+			}
 		} else {
 			home_page();
 		}
-	} else {
-		home_page();
 	}
 }
 
@@ -152,7 +163,7 @@ sub browse_screen {
 		print "<td style=\"font-weight:bold\">$key</td>\n";
 		print "<td>";
 		foreach my $item (sort @{$students{$currProfile}{$key}}) {
-			print "$item";
+			print "$item\n";
 		}
 		print "</td>\n";
 		print "</tr>\n";
@@ -168,8 +179,7 @@ sub browse_screen {
 
 # HTML placed at top of every screen
 sub page_header {
-	#(defined $session) ? (print $session->header()) : (print header());
-	return
+	print
 		"<!DOCTYPE html\n",
 		"PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n",
 	 	"\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n",
@@ -184,7 +194,26 @@ sub page_header {
 		"<link href='//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css' rel='stylesheet'>\n",
 		# Bootstrap end
 		"</head>\n",
-		"<body style='background-color: #ededed'>\n",
+		"<body style='background-color: #ededed; padding-top: 50px'>\n",
+		# NAVBAR IS PRODUCED USING BOOTSTRAP --> getbootstrap.com
+		"<nav class='navbar navbar-inverse navbar-fixed-top' role='navigation'>\n",
+  		"<div class='container-fluid'>\n",
+		"<div class='navbar-header'>\n",
+		"<p class='navbar-brand'>UNSWLUV</p>\n",
+		"</div>\n";
+		if (defined $sid) {
+			print "<form class='navbar-form navbar-left' role='search'>\n",
+  			"<div class='form-group'>\n",
+    		"<input type='text' class='form-control' placeholder='Search for Users' name='searchBar'>\n",
+  			"</div>\n",
+  			"<button type='submit' class='btn btn-info' name='searchbtn'>Submit</button>\n",
+			"</form>\n",
+			"<button type='submit' class='btn btn-info navbar-btn navbar-right' name='logoutbtn'>Logout</button>\n",
+			"<p class='navbar-text navbar-right' style='padding-right: 20px'>Signed in as $username</p>\n";
+		}
+	print
+		"</div></nav>\n",
+		# END NAVBAR
 		"<div><h1 id='pgTitle'>UNSWLUV</h1></div>\n";
 }
 
