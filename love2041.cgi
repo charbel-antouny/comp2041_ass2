@@ -15,6 +15,7 @@ $debug = 1;								# THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
 $students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
 %students = ();
 $loginFlag = 0;
+$year = 2014;
 @students = glob("$students_dir/*");	# format of elements is "./students[30]/USERNAME"
 
 # store all student info in a hash
@@ -37,7 +38,11 @@ for (0..$#students) {
 }
 
 $cgi = CGI->new;
-$sid = $cgi->cookie("CGISESSID") || undef;
+(!defined param('logoutbtn')) ? ($sid = $cgi->cookie("CGISESSID") || undef) : ($sid = undef);
+$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'});
+$session->expire('+30m');
+$loggedIn = $session->param('loggedIn') || 0;
+$cookie = $cgi->cookie(-name => 'CGISESSID', -value => $session->id, -expires => '+30m');
 if (defined param('loginbtn')) {
 	my $user = param('loginUser');
 	$username = $user;
@@ -45,10 +50,8 @@ if (defined param('loginbtn')) {
 	$pass =~ s/[^a-zA-Z0-9]*//g;
 	$user = "$students_dir/$user";
 	if (defined $students{$user} and $pass eq $students{$user}{password}[0]) {
-    	$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'});
-    	$cookie = $cgi->cookie(CGISESSID => $session->id);
-		$session->expire('+30m');
-		$sid = $session->id();
+    	$session->param('loggedIn', 1);
+    	$loggedIn = 1;
 		$session->param('username', $username);
 		$loginFlag = 1;
 	} else {
@@ -61,23 +64,23 @@ if (defined param('loginbtn')) {
 }
 
 if (defined param('logoutbtn')) {
-	my $cookie = $cgi->cookie(CGISESSID => undef);
-	undef $sid;
-	print header(-cookie=>$cookie);
-	page_header();
+	$session->param('loggedIn', 0);
+	$loggedIn = 0;
+}
+if (!$loggedIn) {
+	print header() if (!$loginFlag);
+	page_header() if (!$loginFlag);
 	login_page();
 } else {
-	if (!defined $sid) {
-		print header() if (!$loginFlag);
-		page_header() if (!$loginFlag);
-		login_page();
-	} else {
-		$session = new CGI::Session(undef, $sid, {Directory=>'/tmp'}) if (!$loginFlag);
-		$session->expire('+30m') if (!loginFlag);
-		$username = $session->param('username') if (!defined $username);
-		print $session->header();
-		page_header();
-		if (!defined param('Home')) {
+	$username = $session->param('username') if (!defined $username);
+	print $session->header();
+	page_header();
+	if (!defined param('Home')) {
+		if (defined param('searchbtn')) {
+			my $query = param('searchBar');
+			$query =~ s/[^a-zA-Z0-9]*//g;
+			search_users($query);
+		} else {
 			# check if a user profile has been selected
 			my $stud = param('stud_username');
 			if ($stud) {
@@ -86,9 +89,9 @@ if (defined param('logoutbtn')) {
 			} else {
 				home_page();
 			}
-		} else {
-			home_page();
 		}
+	} else {
+		home_page();
 	}
 }
 
@@ -143,6 +146,105 @@ sub home_page {
 	end_form;
 }
 
+# for (0..$#students) {
+# 	my $student_to_show  = $students[$_];
+# 	my $profile_filename = "$student_to_show/profile.txt";
+# 	open F, "$profile_filename" or die "can not open $profile_filename: $!";
+# 	my $currCat;
+# 	for my $line (<F>) {
+# 		chomp $line;
+# 		$line =~ s/^\s*//g;
+# 		if ($line =~ m/^(\w*):/) {
+# 			$currCat = $1;
+# 			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
+# 		} else {
+# 			push @{$students{$student_to_show}{$currCat}}, $line;
+# 		}
+# 	}
+# 	close F;
+# }
+
+sub match_user {
+	my $user = "students_dir/$username";
+	my %prefs = ();
+	my %scores = ();
+	my prefs_filename = "$user/preferences.txt";
+	open F, "<$prefs_filename" or die "can't open $prefs_filename: $!";
+	my $currCat;
+	foreach my $line (<F>) {
+		chomp $line;
+		if ($line =~ m/^(\w*):/) {
+			$currCat = $1;
+			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
+		} else {
+			$line =~ s/^\s*//g;
+			push @{$prefs{$currCat}}, $line;
+		}
+	}
+	close F;
+	# if (defined $prefs{age}) {
+	# 	minAge = $prefs{age}[1];
+	# 	maxAge = $prefs{age}[3];
+	# }
+	# if (defined $prefs{weight}) {
+	# 	minWeight = $prefs{weight}[1];
+	# 	maxWeight = $prefs{weight}[3];
+	# }
+	foreach my $stud (keys %students) {
+		if (defined $prefs{age} and defined $students{$stud}{birthdate}) {
+			###
+		} elsif (defined $students{$stud}{birthdate}) {
+			###
+		}
+		if (defined $prefs{gender} and defined $students{$stud}{gender}) {
+			###
+		} 
+		# foreach my $cat (keys %prefs) {
+		# 	if ($cat eq "age") {
+		# 		if (defined $students{$stud}{birthdate}) {
+		# 			my $studAge = $students{$stud}{birthdate}[0];
+		# 			$studAge =~ m/\d{4}/;
+		# 			$studAge = year - $&;
+		# 			#check if exists otherwise ignore
+		# 		}
+		# 	} elsif
+		# }
+	}
+}
+
+sub search_users {
+	my $query = lc $_[0];
+	my @results = ();
+	foreach my $stud (keys %students) {
+		$stud =~ s/\.\/students[0-9]*\///g;
+		my $tmp = lc $stud;
+		if ($tmp =~ m/${query}/) {
+			push @results, $stud;
+		}
+	}
+	print start_form,
+		"<div class='table-centred'><table class='table table-bordered'>\n";
+		foreach my $stud (sort @results) {
+			$tmp = $stud;
+			$stud = "$students_dir/${stud}";
+			print "<tr>\n",
+				"<td><div style='text-align:center'><img src=\"$stud/profile.jpg\" alt=\"No Image\" class='img-circle'/></div>\n",
+				"<div><p class='username'>$students{$stud}{username}[0]</p></div></td>\n",
+				"<td>Gender: $students{$stud}{gender}[0]\n";
+			print "Date of Birth: $students{$stud}{birthdate}[0]\n" if (defined $students{$stud}{birthdate});
+			print "Degree: $students{$stud}{degree}[0]\n" if (defined $students{$stud}{degree});
+			print "Height: $students{$stud}{height}[0]\n" if (defined $students{$stud}{height});
+			print "Weight: $students{$stud}{weight}[0]\n" if (defined $students{$stud}{weight});
+			print "<br><button class='btn btn-info' type='submit' name='stud_username' value=\"$tmp\">See More</button></p>\n",
+				"</td></tr>\n";
+		}
+		print "</table></div>\n",
+			"<br>\n",
+			"<div style='text-align: center'><input class='btn btn-primary' type='submit' name='home' value='Home'></div>\n",
+			"<br><br>\n",
+			end_form;
+}
+
 sub browse_screen {
 	my $currProfile = $_[0];
 	if (-e "$currProfile/profile.jpg") {
@@ -151,7 +253,7 @@ sub browse_screen {
 		$currProfile = "";
 	}
 	print start_form, "\n",
-		"<div style='text-align:center'><img src=\"$currProfile\" class=\"img-circle\"/></div>\n";
+		"<div style='text-align:center'><img src='$currProfile' alt='No Image' class='img-circle'/></div>\n";
 		$currProfile = $_[0];
 		print "<div><p class='username'>$students{$currProfile}{username}[0]</p></div><br>\n",
 		"<div class='table-centred'><table class=\"table table-striped\">\n";
@@ -169,7 +271,6 @@ sub browse_screen {
 		print "</tr>\n";
 	}
 	print "</table></div>\n",
-		# hidden('n', $n + 1),"\n",
 		"<br>\n",
 		"<div style='text-align: center'><input class='btn btn-primary' type='submit' name='home' value='Home'></div>\n",
 		"<br><br>\n",
@@ -201,15 +302,18 @@ sub page_header {
 		"<div class='navbar-header'>\n",
 		"<p class='navbar-brand'>UNSWLUV</p>\n",
 		"</div>\n";
-		if (defined $sid) {
-			print "<form class='navbar-form navbar-left' role='search'>\n",
+		if ($loggedIn) {
+			print "<form class='navbar-form navbar-left' role='search' method='POST'>\n",
   			"<div class='form-group'>\n",
     		"<input type='text' class='form-control' placeholder='Search for Users' name='searchBar'>\n",
   			"</div>\n",
   			"<button type='submit' class='btn btn-info' name='searchbtn'>Submit</button>\n",
-			"</form>\n",
+  			"</form>\n",
+  			start_form,
 			"<button type='submit' class='btn btn-info navbar-btn navbar-right' name='logoutbtn'>Logout</button>\n",
-			"<p class='navbar-text navbar-right' style='padding-right: 20px'>Signed in as $username</p>\n";
+			"<p class='navbar-text navbar-right' style='padding-right: 10px'>Signed in as",
+			"<button class='btn btn-link navbar-link' type='submit' name='stud_username' value=\"$username\">$username</button></p>\n",
+			end_form;
 		}
 	print
 		"</div></nav>\n",

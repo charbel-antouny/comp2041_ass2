@@ -58,3 +58,17 @@ Start:      10am
 End:        1pm
 Activity:   Coding, debugging
 Comments:   Re-implemented logging in and out for subset 1.
+
+
+Date:       1/11/2014
+Start:      11am
+End:        6pm
+Activity:   Coding, debugging
+Comments:   Forgot to implement searching for subset 1; implemented that and fixed consequential bugs.
+
+
+Date:       2/11/2014
+Start:      10am
+End:        ???
+Activity:   Coding, debugging
+Comments:   ???
