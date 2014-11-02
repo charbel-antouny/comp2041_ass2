@@ -69,6 +69,6 @@ Comments:   Forgot to implement searching for subset 1; implemented that and fix
 
 Date:       2/11/2014
 Start:      10am
-End:        ???
+End:        4pm
 Activity:   Coding, debugging
-Comments:   ???
+Comments:   Completed subset 2 and tidied up assignment for subsmission.

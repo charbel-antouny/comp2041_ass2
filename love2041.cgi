@@ -11,8 +11,8 @@ use Data::Dumper;
 warningsToBrowser(1);
 
 # some globals used through the script
-$debug = 1;								# THIS SHOULD BE 0 WHEN ASSIGNMENT FINISHED!
-$students_dir = "./students30";			# CHANGE BACK TO ORIGINAL: './students'
+$debug = 0;
+$students_dir = "./students";
 %students = ();
 $loginFlag = 0;
 $year = 2014;
@@ -65,6 +65,7 @@ if (defined param('loginbtn')) {
 
 if (defined param('logoutbtn')) {
 	$session->param('loggedIn', 0);
+	$session->clear('scores');
 	$loggedIn = 0;
 }
 if (!$loggedIn) {
@@ -80,6 +81,8 @@ if (!$loggedIn) {
 			my $query = param('searchBar');
 			$query =~ s/[^a-zA-Z0-9]*//g;
 			search_users($query);
+		} elsif (defined param('matchPrev') or defined param('matchNext') or defined param('matchbtn')) {
+			match_user();
 		} else {
 			# check if a user profile has been selected
 			my $stud = param('stud_username');
@@ -146,70 +149,179 @@ sub home_page {
 	end_form;
 }
 
-# for (0..$#students) {
-# 	my $student_to_show  = $students[$_];
-# 	my $profile_filename = "$student_to_show/profile.txt";
-# 	open F, "$profile_filename" or die "can not open $profile_filename: $!";
-# 	my $currCat;
-# 	for my $line (<F>) {
-# 		chomp $line;
-# 		$line =~ s/^\s*//g;
-# 		if ($line =~ m/^(\w*):/) {
-# 			$currCat = $1;
-# 			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
-# 		} else {
-# 			push @{$students{$student_to_show}{$currCat}}, $line;
-# 		}
-# 	}
-# 	close F;
-# }
-
 sub match_user {
-	my $user = "students_dir/$username";
-	my %prefs = ();
+	my $user = "$students_dir/$username";
 	my %scores = ();
-	my prefs_filename = "$user/preferences.txt";
-	open F, "<$prefs_filename" or die "can't open $prefs_filename: $!";
-	my $currCat;
-	foreach my $line (<F>) {
-		chomp $line;
-		if ($line =~ m/^(\w*):/) {
-			$currCat = $1;
-			$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
+	my $scoresRef = $session->param('scores') || undef;
+	if (defined $scoresRef) {
+		%scores = %{$scoresRef};
+	}
+	
+	if (!defined %scores) {
+		my %prefs = ();
+		my $prefs_filename = "$user/preferences.txt";
+		open F, "<$prefs_filename" or die "can't open $prefs_filename: $!";
+		my $currCat;
+		foreach my $line (<F>) {
+			chomp $line;
+			if ($line =~ m/^(\w*):/) {
+				$currCat = $1;
+				$currCat =~ s/(.*?)_(.*?)/$1 $2/g if ($currCat =~ m/_/);
+			} else {
+				$line =~ s/^\s*//g;
+				push @{$prefs{$currCat}}, $line;
+			}
+		}
+		close F;
+		
+		foreach my $stud (keys %students) {
+			if ($stud eq $user) { next; }
+			if (defined $prefs{age} and defined $students{$stud}{birthdate}) {
+				my $minAge = $prefs{age}[1];
+		 		my $maxAge = $prefs{age}[3];
+		 		my $studAge = $students{$stud}{birthdate}[0];
+		 		$studAge =~ m/\d{4}/;
+		 		$studAge = $year - $&;
+		 		if ($studAge >= $minAge and $studAge <= $maxAge) {
+		 			$scores{$stud} += 20;
+		 		}
+		 		$minAge -= 2;
+		 		$maxAge += 2;
+		 		if ($studAge >= $minAge and $studAge <= $maxAge) {
+		 			$scores{$stud} += 5;
+		 		}
+			} elsif (defined $students{$stud}{birthdate} and defined $students{$user}{birthdate}) {
+				my $userAge = $students{$user}{birthdate}[0];
+				$userAge =~ m/\d{4}/;
+		 		$userAge = $year - $&;
+		 		my $minAge = $userAge - 4;
+		 		my $maxAge = $userAge + 4;
+		 		my $studAge = $students{$stud}{birthdate}[0];
+		 		$studAge =~ m/\d{4}/;
+		 		$studAge = $year - $&;
+		 		if ($studAge >= $minAge and $studAge <= $maxAge) {
+		 			$scores{$stud} += 5;
+		 		}
+			}
+			if (defined $prefs{gender} and defined $students{$stud}{gender}) {
+				if ($prefs{gender}[0] eq $students{$stud}{gender}[0]) {
+					$scores{$stud} += 50;
+				}
+			}
+			if (defined $prefs{"hair colours"} and defined $students{$stud}{"hair colour"}) {
+				foreach my $colour ($prefs{"hair colours"}) {
+					if ($colour eq $students{$stud}{"hair colour"}[0]) {
+						$scores{$stud} += 10;
+					}
+				}
+			}
+			if (defined $prefs{height} and defined $students{$stud}{height}) {
+				my $minHeight = $prefs{height}[1];
+				$minHeight =~ s/m//;
+				my $maxHeight = $prefs{height}[3];
+				$maxHeight =~ s/m//;
+				my $studHeight = $students{$stud}{height}[0];
+				$studHeight =~ s/m//;
+				if ($studHeight >= $minHeight and $studHeight <= $maxHeight) {
+					$scores{$stud} += 10;
+				}
+				$minHeight -= 0.05;
+				$maxHeight += 0.05;
+				if ($studHeight >= $minHeight and $studHeight <= $maxHeight) {
+					$scores{$stud} += 5;
+				}
+			}
+			if (defined $prefs{weight} and defined $students{$stud}{weight}) {
+				my $minWeight = $prefs{weight}[1];
+				$minWeight =~ s/kg//;
+				my $maxWeight = $prefs{weight}[3];
+				$maxWeight =~ s/kg//;
+				my $studWeight = $students{$stud}{weight}[0];
+				$studWeight =~ s/kg//;
+				if ($studWeight >= $minWeight and $studWeight <= $maxWeight) {
+					$scores{$stud} += 10;
+				}
+				$minHeight -= 5;
+				$maxHeight += 5;
+				if ($studWeight >= $minWeight and $studWeight <= $maxWeight) {
+					$scores{$stud} += 5;
+				}
+			}
+			if (defined $students{$user}{"favourite hobbies"} and defined $students{$stud}{"favourite hobbies"}) {
+				foreach my $hobby ($students{$user}{"favourite hobbies"}) {
+					if ($hobby ~~ $students{$stud}{"favourite hobbies"}) {
+						$scores{$stud} += 7;
+					}
+				}
+			}
+			if (defined $students{$user}{"favourite TV shows"} and defined $students{$stud}{"favourite TV shows"}) {
+				foreach my $show ($students{$user}{"favourite TV shows"}) {
+					if ($show ~~ $students{$stud}{"favourite TV shows"}) {
+						$scores{$stud} += 7;
+					}
+				}
+			}
+			if (defined $students{$user}{"favourite books"} and defined $students{$stud}{"favourite books"}) {
+				foreach my $book ($students{$user}{"favourite books"}) {
+					if ($book ~~ $students{$stud}{"favourite books"}) {
+						$scores{$stud} += 7;
+					}
+				}
+			}
+		}
+		$session->param('scores', \%scores);
+	}
+	print start_form;
+	my $n = param('n') || 1;
+	my $max;
+	my $size = keys %scores;
+	if (defined param('matchPrev')) {
+		$n -= 20;
+		param('n', $n+10);
+		print hidden('n', $n+10);
+		($n + 9 > $size) ? ($max = $size) : ($max = $n + 9);
+	} else {
+		($n + 9 > $size) ? ($max = $size) : ($max = $n + 9);
+		param('n', $n+10);
+		print hidden('n', $n+10);
+	}
+	my $count = 1;
+	foreach my $stud (sort {$scores{$b} <=> $scores{$a}} keys %scores) {
+		if ($count < $n) {
+			$count += 1;
+			next;
+		} elsif ($count <= $max) {
+			$tmp = $stud;
+			$tmp =~ s/\.\/students[0-9]*\///g;
+			print "<div class='table-centred'><table class='table table-bordered'>\n",
+				"<tr>\n",
+				"<td><div style='text-align:center'><img src=\"$stud/profile.jpg\" alt=\"No Image\" class='img-circle'/></div>\n",
+				"<div><p class='username'>$students{$stud}{username}[0]</p></div></td>\n",
+				"<td>Gender: $students{$stud}{gender}[0]\n" if (defined $students{$stud}{gender});
+			print "Date of Birth: $students{$stud}{birthdate}[0]\n" if (defined $students{$stud}{birthdate});
+			print "Degree: $students{$stud}{degree}[0]\n" if (defined $students{$stud}{degree});
+			print "Height: $students{$stud}{height}[0]\n" if (defined $students{$stud}{height});
+			print "Weight: $students{$stud}{weight}[0]\n" if (defined $students{$stud}{weight});
+			print "<br><button class='btn btn-info' type='submit' name='stud_username' value=\"$tmp\">See More</button></p>\n",
+				"</td></tr>\n";
+			$count += 1;
 		} else {
-			$line =~ s/^\s*//g;
-			push @{$prefs{$currCat}}, $line;
+			last;
 		}
 	}
-	close F;
-	# if (defined $prefs{age}) {
-	# 	minAge = $prefs{age}[1];
-	# 	maxAge = $prefs{age}[3];
-	# }
-	# if (defined $prefs{weight}) {
-	# 	minWeight = $prefs{weight}[1];
-	# 	maxWeight = $prefs{weight}[3];
-	# }
-	foreach my $stud (keys %students) {
-		if (defined $prefs{age} and defined $students{$stud}{birthdate}) {
-			###
-		} elsif (defined $students{$stud}{birthdate}) {
-			###
-		}
-		if (defined $prefs{gender} and defined $students{$stud}{gender}) {
-			###
-		} 
-		# foreach my $cat (keys %prefs) {
-		# 	if ($cat eq "age") {
-		# 		if (defined $students{$stud}{birthdate}) {
-		# 			my $studAge = $students{$stud}{birthdate}[0];
-		# 			$studAge =~ m/\d{4}/;
-		# 			$studAge = year - $&;
-		# 			#check if exists otherwise ignore
-		# 		}
-		# 	} elsif
-		# }
+	print "</table></div>\n",
+		"<br>\n",
+		"<div class='text-center'>\n",
+		"<div class='btn-group'>\n";
+	if ($n >= 11) {
+		print "<input class='btn btn-primary' type='submit' name='matchPrev' value='Back'>\n";
 	}
+	print "<input class='btn btn-primary' type='submit' name='home' value='Home'>\n";
+	if ($max != $size) {
+		print "<input class='btn btn-primary' type='submit' name='matchNext' value='Next'>\n";
+	}
+	print "</div></div><br><br>\n",
+		end_form;
 }
 
 sub search_users {
@@ -230,7 +342,7 @@ sub search_users {
 			print "<tr>\n",
 				"<td><div style='text-align:center'><img src=\"$stud/profile.jpg\" alt=\"No Image\" class='img-circle'/></div>\n",
 				"<div><p class='username'>$students{$stud}{username}[0]</p></div></td>\n",
-				"<td>Gender: $students{$stud}{gender}[0]\n";
+				"<td>Gender: $students{$stud}{gender}[0]\n" if (defined $students{$stud}{gender});
 			print "Date of Birth: $students{$stud}{birthdate}[0]\n" if (defined $students{$stud}{birthdate});
 			print "Degree: $students{$stud}{degree}[0]\n" if (defined $students{$stud}{degree});
 			print "Height: $students{$stud}{height}[0]\n" if (defined $students{$stud}{height});
@@ -308,6 +420,7 @@ sub page_header {
     		"<input type='text' class='form-control' placeholder='Search for Users' name='searchBar'>\n",
   			"</div>\n",
   			"<button type='submit' class='btn btn-info' name='searchbtn'>Submit</button>\n",
+  			"<button type='submit' class='btn btn-success' name='matchbtn'>Match Me!</button>\n",
   			"</form>\n",
   			start_form,
 			"<button type='submit' class='btn btn-info navbar-btn navbar-right' name='logoutbtn'>Logout</button>\n",
